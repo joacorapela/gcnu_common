@@ -119,8 +119,20 @@ def removeUnitsWithLessSpikesThanThrInAnyTrial(
     return spikes_times, neurons_indices
 
 
-def binSpikes(spikes_times, bins_edges, time_unit):
-    # spike_times in msec
+def binNeuronsAndTrialsSpikesTimes(spikes_times, bins_edges, time_unit):
+    n_trials = len(spikes_times)
+    n_neurons = len(spikes_times[0])
+    binned_spikes_times = [[[] for n in range(n_neurons)]
+                           for r in range(n_trials)]
+    for r in range(n_trials):
+        for n in range(n_neurons):
+            binned_spikes_times[r][n] = binSpikesTimes(
+                spikes_times=spikes_times[r][n],
+                bins_edges=bins_edges,
+                time_unit=time_unit)
+    return binned_spikes_times
+
+def binSpikesTimes(spikes_times, bins_edges, time_unit):
     bin_width = bins_edges[1]-bins_edges[0]
     binned_spikes, _ = np.histogram(a=spikes_times, bins=bins_edges)
     binned_spikes = binned_spikes.astype(float)
