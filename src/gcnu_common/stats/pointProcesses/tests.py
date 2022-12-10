@@ -21,11 +21,11 @@ def timeRescaling(Y, pk):
         rISIs[r] = torch.sum(pk[ind1+1:ind2+1]).item()
     return rISIs
 
-def timeRescalingForUnbinnedSpikes(spikesTimes, cifValues, t0, tf, dt):
-    pk = cifValues*dt
+def timeRescalingForUnbinnedSpikes(spikes_times, cif_values, t0, tf, dt):
+    pk = cif_values*dt
     bins = torch.arange(t0-dt/2, tf+dt/2, dt)
     # start binning spikes using pandas
-    cutRes, _ = pd.cut(spikesTimes, bins=bins, retbins=True)
+    cutRes, _ = pd.cut(spikes_times, bins=bins, retbins=True)
     Y = torch.from_numpy(cutRes.value_counts().values)
     # end binning spikes using pandas
     indicesMoreThanOneSpikes = (Y>1).nonzero()
@@ -35,7 +35,7 @@ def timeRescalingForUnbinnedSpikes(spikesTimes, cifValues, t0, tf, dt):
     zExp = timeRescaling(Y=Y, pk=pk)
     return zExp
 
-def KSTestTimeRescalingNumericalCorrection(spikesTimes, cifTimes, cifValues, gamma):
+def KSTestTimeRescalingNumericalCorrection(spikes_times, cif_times, cif_values, gamma):
     # from Haslinger et al., 2010, p. 2492,
     # Procedure for Numerical Correction
 
@@ -52,29 +52,32 @@ def KSTestTimeRescalingNumericalCorrection(spikesTimes, cifTimes, cifValues, gam
         # end debug
         return torch.tensor(subX), torch.tensor(subY)
 
-    t0 = cifTimes.min()
-    tf = cifTimes.max()
-    dt = cifTimes[1]-cifTimes[0]
-    T = tf-t0
+    t0 = cif_times.min()
+    tf = cif_times.max()
+    dt = cif_times[1]-cif_times[0]
     print("Processing given ISIs")
-    zExp = timeRescalingForUnbinnedSpikes(spikesTimes=spikesTimes, cifValues=cifValues, t0=t0, tf=tf, dt=dt)
+    zExp = timeRescalingForUnbinnedSpikes(spikes_times=spikes_times,
+                                          cif_values=cif_values,
+                                          t0=t0, tf=tf, dt=dt)
+    expECDFx, _ = torch.sort(zExp)
+    expECDFy = torch.linspace(0, 1, len(zExp))
     zSim = None
     for i in range(gamma):
         print("Processing iter {:d}/{:d}".format(i, gamma-1))
-        simSpikesTimes = sampling.sampleInhomogeneousPP_timeRescaling(CIF_times=cifTimes, CIF_values=cifValues)
-        zSimIter = timeRescalingForUnbinnedSpikes(spikesTimes=simSpikesTimes,
-                                                  cifValues=cifValues,
+        simSpikesTimes = sampling.sampleInhomogeneousPP_timeRescaling(
+            CIF_times=cif_times, CIF_values=cif_values)
+        zSimIter = timeRescalingForUnbinnedSpikes(spikes_times=simSpikesTimes,
+                                                  cif_values=cif_values,
                                                   t0=t0, tf=tf, dt=dt)
         if zSimIter is not None:
             if zSim is None:
                 zSim = zSimIter
             else:
                 zSim = torch.cat((zSim, zSimIter))
-    expECDFx, _ = torch.sort(zExp)
-    expECDFy = torch.linspace(0, 1, len(zExp))
     simECDFx, _ = torch.sort(zSim)
     simECDFy = torch.linspace(0, 1, len(zSim))
-    diffECDFsX, diffECDFsY = subtractECDFs(ecdf1X=expECDFx, ecdf1Y=expECDFy, ecdf2X=simECDFx, ecdf2Y=simECDFy)
+    diffECDFsX, diffECDFsY = subtractECDFs(ecdf1X=expECDFx, ecdf1Y=expECDFy,
+                                           ecdf2X=simECDFx, ecdf2Y=simECDFy)
 
     Nexp = len(zExp)
     Nsim = len(zSim)
@@ -82,10 +85,12 @@ def KSTestTimeRescalingNumericalCorrection(spikesTimes, cifTimes, cifValues, gam
 
     return diffECDFsX, diffECDFsY, expECDFx, expECDFy, simECDFx, simECDFy, cb
 
+
 def timeRescalingAnalyticalCorrection(Y, pk, eps=1e-10):
-    indicesMoreThanOneSpikes = (Y>1).nonzero()
-    if len(indicesMoreThanOneSpikes)>0:
-        warnings.warn("Found more than one spike in {:d} bins".format(len(indicesMoreThanOneSpikes)))
+    indicesMoreThanOneSpikes = (Y > 1).nonzero()
+    if len(indicesMoreThanOneSpikes) > 0:
+        warnings.warn("Found more than one spike in {:d} bins".format(
+            len(indicesMoreThanOneSpikes)))
         Y[indicesMoreThanOneSpikes] = 1.0
     pk = torch.max(pk, torch.tensor([eps], dtype=torch.double))
     qk = -torch.log(1-pk)
@@ -102,6 +107,7 @@ def timeRescalingAnalyticalCorrection(Y, pk, eps=1e-10):
         delta = -math.log(1-random.random()*(1-math.exp(-qk[ind2].item())))
         rISIs[r] = aSum + delta
     return rISIs
+
 
 def KSTestTimeRescalingAnalyticalCorrection(Y, pk, eps=1e-10):
     '''
@@ -129,11 +135,11 @@ def KSTestTimeRescalingAnalyticalCorrection(Y, pk, eps=1e-10):
     cb = 1.36/math.sqrt(n)                      # 95% confidence bounds for large sample sizes (see Brown et al., 2001)
     return utSRISIs, uCDF, cb, utRISIs
 
-def KSTestTimeRescalingAnalyticalCorrectionUnbinned(spikesTimes, cifValues, t0, tf, dt, eps=1e-10):
-        pk = cifValues*dt
+def KSTestTimeRescalingAnalyticalCorrectionUnbinned(spikes_times, cif_values, t0, tf, dt, eps=1e-10):
+        pk = cif_values*dt
         bins = torch.arange(t0-dt/2, tf+dt/2, dt)
         # start binning spikes using pandas
-        cutRes, _ = pd.cut(spikesTimes, bins=bins, retbins=True)
+        cutRes, _ = pd.cut(spikes_times, bins=bins, retbins=True)
         Y = torch.from_numpy(cutRes.value_counts().values)
         # end binning spikes using pandas
         utSRISIs, uCDF, cb, utRISIs = KSTestTimeRescalingAnalyticalCorrection(Y=Y, pk=pk, eps=eps)
