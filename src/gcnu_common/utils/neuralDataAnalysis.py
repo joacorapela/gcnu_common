@@ -119,6 +119,37 @@ def removeUnitsWithLessSpikesThanThrInAnyTrial(
     return spikes_times, neurons_indices
 
 
+def removeTrialsLongerThanThr(spikes_times, trials_indices,
+                              trials_durations, max_trial_duration):
+    trials_to_keep = np.where(trials_durations<=max_trial_duration)[0]
+    spikes_times = [spikes_times[trial_to_keep]
+                    for trial_to_keep in trials_to_keep]
+    trials_indices = trials_indices[trials_to_keep]
+    return spikes_times, trials_indices
+
+def removeUnitsWithLessTrialAveragedFiringRateThanThr(
+        spikes_times, neurons_indices, trials_durations,
+        min_neuron_trials_avg_firing_rate):
+    n_neurons = len(spikes_times[0])
+    n_trials = len(spikes_times)
+
+    neurons_indices_to_keep = []
+    for n in range(n_neurons):
+        trials_firing_rates = np.array([np.nan for r in range(n_trials)])
+        for r in range(n_trials):
+            spikes_times_rn = spikes_times[r][n]
+            trials_firing_rates[r] = len(spikes_times_rn)/trials_durations[r]
+        trial_avg_firing_rate = trials_firing_rates.mean()
+        if trial_avg_firing_rate > min_neuron_trials_avg_firing_rate:
+            neurons_indices_to_keep.append(n)
+    filtered_spikes_times = [[spikes_times[r][n]
+                              for n in neurons_indices_to_keep]
+                             for r in range(n_trials)]
+    filtered_neurons_indices = [neurons_indices[n]
+                                for n in neurons_indices_to_keep]
+    return filtered_spikes_times, filtered_neurons_indices
+
+
 def binNeuronsAndTrialsSpikesTimes(spikes_times, bins_edges, time_unit):
     n_trials = len(spikes_times)
     n_neurons = len(spikes_times[0])
