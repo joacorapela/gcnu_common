@@ -49,18 +49,20 @@ def compute_mean_spectrum(x_trials, Fs):
     return mean_trial_spectrum, freqs
 
 
-def compute_spectogram(t, x_trials, window_length, step_size, Fs):
+def compute_spectogram(t, x_trials, window_length, step_size, Fs, fpass):
     window_length_samples, step_size_samples = \
             [int(Fs * x) for x in [window_length, step_size]]    # Convert step and window to samples.
     starts = range(0, x_trials.shape[-1] - window_length_samples,
                    step_size_samples)    # Determine where spectrogram windows should start.
     f = compute_mean_spectrum(
         x_trials=x_trials[:, range(window_length_samples)], Fs=Fs)[1] # Get the frequencies,
+    findx = (f >= fpass[0]) & (f <= fpass[1])                    # ... create a mask of frequencies of interest,
+    f = f[findx]                                                 # ... and select these frequencies of interest.
     spectogram = []
     for s in starts:                                             # Compute the spectrum on each 500 ms window.
         spectrum = compute_mean_spectrum(                        # ...  starting every 50 ms
             x_trials[:, range(s, s + window_length_samples)],
-            Fs=Fs)[0]
+            Fs=Fs)[0][findx]
         spectogram.append(spectrum)
 
     spectogram = np.array(spectogram).T
