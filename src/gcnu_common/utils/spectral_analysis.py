@@ -17,7 +17,7 @@ def compute_acf(spikes_times):
         x = trial_spikes_times - np.mean(trial_spikes_times)
         corr = np.correlate(x, x, "full")
         acf[r, :] = corr / np.linalg.norm(x)**2
-    acf = acr[:, n_bins:(2*n_bins-1)]
+    acf = acf[:, n_bins:(2*n_bins-1)]
     lags_ms = np.arange(n_bins)
     mean_acf = np.mean(acf, axis=0)
 
