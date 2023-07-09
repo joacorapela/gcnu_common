@@ -1,9 +1,60 @@
 import numpy as np
 
 
+def checkAtLeastOneSpikePerNeuron(spikes_times):
+    n_trials = len(spikes_times)
+    n_neurons = len(spikes_times[0])
+    for n in range(n_neurons):
+        n_spikes = 0
+        r = 0
+        while n_spikes == 0 and r < n_trials:
+            n_spikes = len(spikes_times[r][n])
+            r += 1
+        if n_spikes == 0:
+            raise ValueError(f"neuron {n} has no spike across trials")
+
+
+def checkSpikesTimesWithinBounds(spikes_times, trials_start_times,
+                                 trials_end_times):
+    n_trials = len(spikes_times)
+    n_neurons = len(spikes_times[0])
+    for r in range(n_trials):
+        for n in range(n_neurons):
+            if len(spikes_times[r][n]) > 0:
+                min_spike_time_rn = min(spikes_times[r][n]) 
+                if min_spike_time_rn < trials_start_times[r]:
+                    raise ValueError(f"spike time at {min_spike_time_rn} found "
+                                     f"before trial start time at "
+                                     f"{trials_start_times[r]} for trials {r} "
+                                     f"and neuron {n}")
+                max_spike_time_rn = max(spikes_times[r][n]) 
+                if max_spike_time_rn > trials_end_times[r]:
+                    raise ValueError(f"spike time at {max_spike_time_rn} found "
+                                     f"after trial start time at "
+                                     f"{trials_start_times[r]} for trials {r} "
+                                     f"and neuron {n}")
+
+
+def checkEpochedSpikesTimes(spikes_times, trials_start_times, trials_end_times):
+    checkAtLeastOneSpikePerNeuron(spikes_times=spikes_times)
+    checkSpikesTimesWithinBounds(spikes_times=spikes_times,
+                                 trials_start_times=trials_start_times,
+                                 trials_end_times=trials_end_times)
+
+
+def getSpikesRatesAllTrialsAllNeurons(spikes_times, trials_durations):
+    n_trials = len(spikes_times)
+    n_neurons = len(spikes_times[0])
+
+    spikes_rates = np.empty((n_trials, n_neurons), dtype=np.double)
+    for r in range(n_trials):
+        for n in range(n_neurons):
+            spikes_rates[r][n] = len(spikes_times[r][n])/trials_durations[r]
+    return spikes_rates
+
+
 def binSpikes(spikes, bins_edges):
-    bin_counts, bins_edges_output = np.histogram(input=spikes,
-                                                   bins=bins_edges)
+    bin_counts, bins_edges_output = np.histogram(input=spikes, bins=bins_edges)
     bin_centers = (bins_edges_output[:-1]+bins_edges_output[1:])/2.0
     return bin_counts, bin_centers
 
