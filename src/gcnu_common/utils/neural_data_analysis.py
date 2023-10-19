@@ -53,10 +53,10 @@ def getSpikesRatesAllTrialsAllNeurons(spikes_times, trials_durations):
     return spikes_rates
 
 
-def binSpikes(spikes, bins_edges):
-    bin_counts, bins_edges_output = np.histogram(input=spikes, bins=bins_edges)
-    bin_centers = (bins_edges_output[:-1]+bins_edges_output[1:])/2.0
-    return bin_counts, bin_centers
+# def binSpikes(spikes, bins_edges):
+#     bin_counts, bins_edges_output = np.histogram(input=spikes, bins=bins_edges)
+#     bin_centers = (bins_edges_output[:-1]+bins_edges_output[1:])/2.0
+#     return bin_counts, bin_centers
 
 
 def clipSpikesTimes(spikes_times, from_time, to_time):
@@ -233,7 +233,7 @@ def binMultiTrialSpikes(spikes_times, neuron_index, trials_indices,
                                 dtype=np.double)
     for i, trial_index in enumerate(trials_indices):
         aligned_spikes_trial_neuron = spikes_times[trial_index][neuron_index]
-        binned_spikes = binSpikes(
+        binned_spikes = binSpikesTimes(
             spikes_times=aligned_spikes_trial_neuron,
             bins_edges=bins_edges, time_unit=time_unit)
         mt_binned_spikes[i, :] = binned_spikes
