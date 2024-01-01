@@ -1,7 +1,7 @@
 
 import pdb
 import math
-import torch
+import jax.numpy as jnp
 import scipy.stats
 
 class GaussianProcess(object):
@@ -16,9 +16,9 @@ class GaussianProcess(object):
     def eval(self, t, regularization=1e-5):
         mean = self._mean(t)
         cov = self._kernel.buildKernelMatrix(t)
-        cov = cov + regularization*torch.eye(cov.shape[0])
+        cov = cov + regularization*jnp.eye(cov.shape[0])
         mn = scipy.stats.multivariate_normal(mean=mean, cov=cov)
-        samples = torch.from_numpy(mn.rvs())
+        samples = jnp.asarray(mn.rvs())
         return samples, mean, cov
 
     def mean(self, t):
@@ -26,6 +26,6 @@ class GaussianProcess(object):
 
     def std(self, t):
         Kdiag = self._kernel.buildKernelMatrixDiag(t)
-        std = torch.sqrt(Kdiag)
+        std = jnp.sqrt(Kdiag)
         return std
 
