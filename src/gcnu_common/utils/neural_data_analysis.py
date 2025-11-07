@@ -1,54 +1,54 @@
 import numpy as np
 
 
-def checkAtLeastOneSpikePerNeuron(spikes_times):
+def checkAtLeastOneSpikePerCluster(spikes_times):
     n_trials = len(spikes_times)
-    n_neurons = len(spikes_times[0])
-    for n in range(n_neurons):
+    n_clusters = len(spikes_times[0])
+    for n in range(n_clusters):
         n_spikes = 0
         r = 0
         while n_spikes == 0 and r < n_trials:
             n_spikes = len(spikes_times[r][n])
             r += 1
         if n_spikes == 0:
-            raise ValueError(f"neuron {n} has no spike across trials")
+            raise ValueError(f"cluster {n} has no spike across trials")
 
 
 def checkSpikesTimesWithinBounds(spikes_times, trials_start_times,
                                  trials_end_times):
     n_trials = len(spikes_times)
-    n_neurons = len(spikes_times[0])
+    n_clusters = len(spikes_times[0])
     for r in range(n_trials):
-        for n in range(n_neurons):
+        for n in range(n_clusters):
             if len(spikes_times[r][n]) > 0:
                 min_spike_time_rn = min(spikes_times[r][n]) 
                 if min_spike_time_rn < trials_start_times[r]:
                     raise ValueError(f"spike time at {min_spike_time_rn} found "
                                      f"before trial start time at "
                                      f"{trials_start_times[r]} for trials {r} "
-                                     f"and neuron {n}")
+                                     f"and cluster {n}")
                 max_spike_time_rn = max(spikes_times[r][n]) 
                 if max_spike_time_rn > trials_end_times[r]:
                     raise ValueError(f"spike time at {max_spike_time_rn} found "
                                      f"after trial start time at "
                                      f"{trials_start_times[r]} for trials {r} "
-                                     f"and neuron {n}")
+                                     f"and cluster {n}")
 
 
 def checkEpochedSpikesTimes(spikes_times, trials_start_times, trials_end_times):
-    checkAtLeastOneSpikePerNeuron(spikes_times=spikes_times)
+    checkAtLeastOneSpikePerCluster(spikes_times=spikes_times)
     checkSpikesTimesWithinBounds(spikes_times=spikes_times,
                                  trials_start_times=trials_start_times,
                                  trials_end_times=trials_end_times)
 
 
-def getSpikesRatesAllTrialsAllNeurons(spikes_times, trials_durations):
+def getSpikesRatesAllTrialsAllClusters(spikes_times, trials_durations):
     n_trials = len(spikes_times)
-    n_neurons = len(spikes_times[0])
+    n_clusters = len(spikes_times[0])
 
-    spikes_rates = np.empty((n_trials, n_neurons), dtype=np.double)
+    spikes_rates = np.empty((n_trials, n_clusters), dtype=np.double)
     for r in range(n_trials):
-        for n in range(n_neurons):
+        for n in range(n_clusters):
             spikes_rates[r][n] = len(spikes_times[r][n])/trials_durations[r]
     return spikes_rates
 
@@ -70,20 +70,20 @@ def clipSpikesTimes(spikes_times, from_time, to_time):
 
 
 def clipTrialSpikesTimes(trial_spikes_times, from_time, to_time):
-    nNeurons = len(trial_spikes_times)
-    clipped_trial_spikes_times = [[]] * nNeurons
-    for n in range(nNeurons):
-        clipped_trial_spikes_times[n] = clipNeuronSpikesTimes(
-            neuron_spikes_times=trial_spikes_times[n],
+    nClusters = len(trial_spikes_times)
+    clipped_trial_spikes_times = [[]] * nClusters
+    for n in range(nClusters):
+        clipped_trial_spikes_times[n] = clipClusterSpikesTimes(
+            cluster_spikes_times=trial_spikes_times[n],
             from_time=from_time, to_time=to_time)
     return clipped_trial_spikes_times
 
 
-def clipNeuronSpikesTimes(neuron_spikes_times, from_time, to_time):
-    clipped_neuron_spikes_times = neuron_spikes_times[
-        np.logical_and(from_time <= neuron_spikes_times,
-                          neuron_spikes_times < to_time)]
-    return clipped_neuron_spikes_times
+def clipClusterSpikesTimes(cluster_spikes_times, from_time, to_time):
+    clipped_cluster_spikes_times = cluster_spikes_times[
+        np.logical_and(from_time <= cluster_spikes_times,
+                       cluster_spikes_times < to_time)]
+    return clipped_cluster_spikes_times
 
 
 def offsetSpikeTimes(spikes_times, offset):
@@ -96,9 +96,9 @@ def offsetSpikeTimes(spikes_times, offset):
 
 
 def offsetTrialSpikesTimes(trial_spikes_times, offset):
-    nNeurons = len(trial_spikes_times)
-    offsetted_trial_spikes_times = [[]] * nNeurons
-    for n in range(nNeurons):
+    nClusters = len(trial_spikes_times)
+    offsetted_trial_spikes_times = [[]] * nClusters
+    for n in range(nClusters):
         offsetted_trial_spikes_times[n] = trial_spikes_times[n]+offset
     return offsetted_trial_spikes_times
 
@@ -114,9 +114,9 @@ def removeUnits(spikes_times, units_to_remove):
 
 
 def removeUnitsFromTrial(trial_spikes_times, units_to_remove):
-    nNeurons = len(trial_spikes_times)
+    nClusters = len(trial_spikes_times)
     spikes_times_woUnits = []
-    for n in range(nNeurons):
+    for n in range(nClusters):
         if n not in units_to_remove:
             spikes_times_woUnits.append(trial_spikes_times[n])
     return spikes_times_woUnits
@@ -124,8 +124,8 @@ def removeUnitsFromTrial(trial_spikes_times, units_to_remove):
 
 def selectUnitsWithLessSpikesThanThrInAllTrials(spikes_times, thr):
     nTrials = len(spikes_times)
-    nNeurons = len(spikes_times[0])
-    selected_units = set([i for i in range(nNeurons)])
+    nClusters = len(spikes_times[0])
+    selected_units = set([i for i in range(nClusters)])
     for r in range(nTrials):
         selected_trial_units = selectUnitsWithLessSpikesThanThrInTrial(
             spikes_times=spikes_times[r], thr=thr)
@@ -147,27 +147,27 @@ def selectUnitsWithLessSpikesThanThrInAnyTrial(spikes_times, thr):
 
 
 def selectUnitsWithLessSpikesThanThrInTrial(spikes_times, thr):
-    nNeurons = len(spikes_times)
+    nClusters = len(spikes_times)
     selected_units = set([])
-    for n in range(nNeurons):
+    for n in range(nClusters):
         if len(spikes_times[n]) < thr:
             selected_units.add(n)
     return selected_units
 
 
 def removeUnitsWithLessSpikesThanThrInAnyTrial(
-        spikes_times, min_nSpikes_perNeuron_perTrial):
-    nNeurons = len(spikes_times[0])
-    neurons_indices = [n for n in range(nNeurons)]
+        spikes_times, min_nSpikes_perCluster_perTrial):
+    nClusters = len(spikes_times[0])
+    clusters_indices = [n for n in range(nClusters)]
     units_to_remove = \
         selectUnitsWithLessSpikesThanThrInAllTrials(
             spikes_times=spikes_times,
-            thr=min_nSpikes_perNeuron_perTrial)
+            thr=min_nSpikes_perCluster_perTrial)
     spikes_times = removeUnits(spikes_times=spikes_times,
                                units_to_remove=units_to_remove)
-    neurons_indices = [n for n in neurons_indices
+    clusters_indices = [n for n in clustens_indices
                        if n not in units_to_remove]
-    return spikes_times, neurons_indices
+    return spikes_times, clusters_indices
 
 
 def removeTrialsLongerThanThr(spikes_times, trials_indices,
@@ -179,35 +179,35 @@ def removeTrialsLongerThanThr(spikes_times, trials_indices,
     return spikes_times, trials_indices
 
 def removeUnitsWithLessTrialAveragedFiringRateThanThr(
-        spikes_times, neurons_indices, trials_durations,
-        min_neuron_trials_avg_firing_rate):
-    n_neurons = len(spikes_times[0])
+        spikes_times, clusters_indices, trials_durations,
+        min_cluster_trials_avg_firing_rate):
+    n_clusters = len(spikes_times[0])
     n_trials = len(spikes_times)
 
-    neurons_indices_to_keep = []
-    for n in range(n_neurons):
+    clusters_indices_to_keep = []
+    for n in range(n_clusters):
         trials_firing_rates = np.array([np.nan for r in range(n_trials)])
         for r in range(n_trials):
             spikes_times_rn = spikes_times[r][n]
             trials_firing_rates[r] = len(spikes_times_rn)/trials_durations[r]
         trial_avg_firing_rate = trials_firing_rates.mean()
-        if trial_avg_firing_rate > min_neuron_trials_avg_firing_rate:
-            neurons_indices_to_keep.append(n)
+        if trial_avg_firing_rate > min_cluster_trials_avg_firing_rate:
+            clusters_indices_to_keep.append(n)
     filtered_spikes_times = [[spikes_times[r][n]
-                              for n in neurons_indices_to_keep]
+                              for n in clusters_indices_to_keep]
                              for r in range(n_trials)]
-    filtered_neurons_indices = [neurons_indices[n]
-                                for n in neurons_indices_to_keep]
-    return filtered_spikes_times, filtered_neurons_indices
+    filtered_clusters_indices = [clusters_indices[n]
+                                for n in clusters_indices_to_keep]
+    return filtered_spikes_times, filtered_clusters_indices
 
 
-def binNeuronsAndTrialsSpikesTimes(spikes_times, bins_edges, time_unit):
+def binClustersAndTrialsSpikesTimes(spikes_times, bins_edges, time_unit):
     n_trials = len(spikes_times)
-    n_neurons = len(spikes_times[0])
-    binned_spikes_times = [[[] for n in range(n_neurons)]
+    n_clusters = len(spikes_times[0])
+    binned_spikes_times = [[[] for n in range(n_clusters)]
                            for r in range(n_trials)]
     for r in range(n_trials):
-        for n in range(n_neurons):
+        for n in range(n_clusters):
             binned_spikes_times[r][n] = binSpikesTimes(
                 spikes_times=spikes_times[r][n],
                 bins_edges=bins_edges,
@@ -227,23 +227,23 @@ def binSpikesTimes(spikes_times, bins_edges, time_unit):
     return binned_spikes
 
 
-def binMultiTrialSpikes(spikes_times, neuron_index, trials_indices,
+def binMultiTrialSpikes(spikes_times, cluster_index, trials_indices,
                         bins_edges, time_unit):
     mt_binned_spikes = np.empty((len(trials_indices), len(bins_edges)-1),
                                 dtype=np.double)
     for i, trial_index in enumerate(trials_indices):
-        aligned_spikes_trial_neuron = spikes_times[trial_index][neuron_index]
+        aligned_spikes_trial_cluster = spikes_times[trial_index][cluster_index]
         binned_spikes = binSpikesTimes(
-            spikes_times=aligned_spikes_trial_neuron,
+            spikes_times=aligned_spikes_trial_cluster,
             bins_edges=bins_edges, time_unit=time_unit)
         mt_binned_spikes[i, :] = binned_spikes
     return mt_binned_spikes
 
 
-def computeBinnedSpikesAndPSTH(spikes_times, neuron_index, trials_indices,
+def computeBinnedSpikesAndPSTH(spikes_times, cluster_index, trials_indices,
                                bins_edges, time_unit):
     binned_spikes = binMultiTrialSpikes(spikes_times=spikes_times,
-                                        neuron_index=neuron_index,
+                                        cluster_index=cluster_index,
                                         trials_indices=trials_indices,
                                         bins_edges=bins_edges,
                                         time_unit=time_unit)
@@ -253,12 +253,12 @@ def computeBinnedSpikesAndPSTH(spikes_times, neuron_index, trials_indices,
     return binned_spikes, psth
 
 
-def computeBinnedSpikesAndPSTHwithCI(spikes_times, neuron_index,
+def computeBinnedSpikesAndPSTHwithCI(spikes_times, cluster_index,
                                      trials_indices, epoch_times,
                                      bins_edges, time_unit,
                                      nResamples, alpha):
     binned_spikes = binMultiTrialSpikes(spikes_times=spikes_times,
-                                        neuron_index=neuron_index,
+                                        cluster_index=cluster_index,
                                         trials_indices=trials_indices,
                                         epoch_times=epoch_times,
                                         bins_edges=bins_edges,
@@ -278,11 +278,11 @@ def computeBinnedSpikesAndPSTHwithCI(spikes_times, neuron_index,
 def alignAndClipSpikeTimes(spike_times, align_times, clip_start_time,
                            clip_end_time):
     nTrials = len(spike_times)
-    nNeurons = len(spike_times[0])
+    nClusters = len(spike_times[0])
     aligned_clipped_spikes_times = []
     for r in range(nTrials):
         aligned_clipped_spikes_times_r = []
-        for n in range(nNeurons):
+        for n in range(nClusters):
             aligned_spikes_times_rn = spike_times[r][n]-align_times[r]
             aligned_clipped_spikes_times_rn = aligned_spikes_times_rn[
                 np.logical_and(clip_start_time <= aligned_spikes_times_rn,
