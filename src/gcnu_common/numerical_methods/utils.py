@@ -1,4 +1,3 @@
-import pdb
 import jax.numpy as jnp
 from numpy.polynomial.legendre import leggauss
 
