@@ -103,70 +103,70 @@ def offsetTrialSpikesTimes(trial_spikes_times, offset):
     return offsetted_trial_spikes_times
 
 
-def removeUnits(spikes_times, units_to_remove):
+def removeClusters(spikes_times, clusters_to_remove):
     nTrials = len(spikes_times)
-    spikes_times_woUnits = [[]] * nTrials
+    spikes_times_woClusters = [[]] * nTrials
     for r in range(nTrials):
-        spikes_times_woUnits[r] = \
-                removeUnitsFromTrial(trial_spikes_times=spikes_times[r],
-                                     units_to_remove=units_to_remove)
-    return spikes_times_woUnits
+        spikes_times_woClusters[r] = \
+                removeClustersFromTrial(trial_spikes_times=spikes_times[r],
+                                     clusters_to_remove=clusters_to_remove)
+    return spikes_times_woClusters
 
 
-def removeUnitsFromTrial(trial_spikes_times, units_to_remove):
+def removeClustersFromTrial(trial_spikes_times, clusters_to_remove):
     nClusters = len(trial_spikes_times)
-    spikes_times_woUnits = []
+    spikes_times_woClusters = []
     for n in range(nClusters):
-        if n not in units_to_remove:
-            spikes_times_woUnits.append(trial_spikes_times[n])
-    return spikes_times_woUnits
+        if n not in clusters_to_remove:
+            spikes_times_woClusters.append(trial_spikes_times[n])
+    return spikes_times_woClusters
 
 
-def selectUnitsWithLessSpikesThanThrInAllTrials(spikes_times, thr):
+def selectClustersWithLessSpikesThanThrInAllTrials(spikes_times, thr):
     nTrials = len(spikes_times)
     nClusters = len(spikes_times[0])
-    selected_units = set([i for i in range(nClusters)])
+    selected_clusters = set([i for i in range(nClusters)])
     for r in range(nTrials):
-        selected_trial_units = selectUnitsWithLessSpikesThanThrInTrial(
+        selected_trial_clusters = selectClustersWithLessSpikesThanThrInTrial(
             spikes_times=spikes_times[r], thr=thr)
-        selected_units = selected_units.intersection(selected_trial_units)
-    answer = list(selected_units)
+        selected_clusters = selected_clusters.intersection(selected_trial_clusters)
+    answer = list(selected_clusters)
     return answer
 
 
-def selectUnitsWithLessSpikesThanThrInAnyTrial(spikes_times, thr):
+def selectClustersWithLessSpikesThanThrInAnyTrial(spikes_times, thr):
     nTrials = len(spikes_times)
-    selected_units = set([])
+    selected_clusters = set([])
     for r in range(nTrials):
-        selected_trial_units = selectUnitsWithLessSpikesThanThrInTrial(
+        selected_trial_clusters = selectClustersWithLessSpikesThanThrInTrial(
             spikes_times=spikes_times[r], thr=thr)
-        selected_units = selected_units.union(selected_trial_units)
-    answer = list(selected_units)
+        selected_clusters = selected_clusters.union(selected_trial_clusters)
+    answer = list(selected_clusters)
     return answer
-    return selected_units
+    return selected_clusters
 
 
-def selectUnitsWithLessSpikesThanThrInTrial(spikes_times, thr):
+def selectClustersWithLessSpikesThanThrInTrial(spikes_times, thr):
     nClusters = len(spikes_times)
-    selected_units = set([])
+    selected_clusters = set([])
     for n in range(nClusters):
         if len(spikes_times[n]) < thr:
-            selected_units.add(n)
-    return selected_units
+            selected_clusters.add(n)
+    return selected_clusters
 
 
-def removeUnitsWithLessSpikesThanThrInAnyTrial(
+def removeClustersWithLessSpikesThanThrInAnyTrial(
         spikes_times, min_nSpikes_perCluster_perTrial):
     nClusters = len(spikes_times[0])
     clusters_indices = [n for n in range(nClusters)]
-    units_to_remove = \
-        selectUnitsWithLessSpikesThanThrInAllTrials(
+    clusters_to_remove = \
+        selectClustersWithLessSpikesThanThrInAllTrials(
             spikes_times=spikes_times,
             thr=min_nSpikes_perCluster_perTrial)
-    spikes_times = removeUnits(spikes_times=spikes_times,
-                               units_to_remove=units_to_remove)
+    spikes_times = removeClusters(spikes_times=spikes_times,
+                               clusters_to_remove=clusters_to_remove)
     clusters_indices = [n for n in clustens_indices
-                       if n not in units_to_remove]
+                       if n not in clusters_to_remove]
     return spikes_times, clusters_indices
 
 
@@ -178,7 +178,7 @@ def removeTrialsLongerThanThr(spikes_times, trials_indices,
     trials_indices = trials_indices[trials_to_keep]
     return spikes_times, trials_indices
 
-def removeUnitsWithLessTrialAveragedFiringRateThanThr(
+def removeClustersWithLessTrialAveragedFiringRateThanThr(
         spikes_times, clusters_indices, trials_durations,
         min_cluster_trials_avg_firing_rate):
     n_clusters = len(spikes_times[0])
@@ -201,7 +201,7 @@ def removeUnitsWithLessTrialAveragedFiringRateThanThr(
     return filtered_spikes_times, filtered_clusters_indices
 
 
-def binClustersAndTrialsSpikesTimes(spikes_times, bins_edges, time_unit):
+def binClustersAndTrialsSpikesTimes(spikes_times, bins_edges, time_cluster):
     n_trials = len(spikes_times)
     n_clusters = len(spikes_times[0])
     binned_spikes_times = [[[] for n in range(n_clusters)]
@@ -211,42 +211,42 @@ def binClustersAndTrialsSpikesTimes(spikes_times, bins_edges, time_unit):
             binned_spikes_times[r][n] = binSpikesTimes(
                 spikes_times=spikes_times[r][n],
                 bins_edges=bins_edges,
-                time_unit=time_unit)
+                time_cluster=time_cluster)
     return binned_spikes_times
 
-def binSpikesTimes(spikes_times, bins_edges, time_unit):
+def binSpikesTimes(spikes_times, bins_edges, time_cluster):
     bin_width = bins_edges[1]-bins_edges[0]
     binned_spikes, _ = np.histogram(a=spikes_times, bins=bins_edges)
     binned_spikes = binned_spikes.astype(float)
-    if time_unit == "sec":
+    if time_cluster == "sec":
         binned_spikes *= 1.0/bin_width
-    elif time_unit == "msec":
+    elif time_cluster == "msec":
         binned_spikes *= 1000.0/bin_width
     else:
-        raise ValueError("time_unit should be sec or msec, but not {}".format(time_unit))
+        raise ValueError("time_cluster should be sec or msec, but not {}".format(time_cluster))
     return binned_spikes
 
 
 def binMultiTrialSpikes(spikes_times, cluster_index, trials_indices,
-                        bins_edges, time_unit):
+                        bins_edges, time_cluster):
     mt_binned_spikes = np.empty((len(trials_indices), len(bins_edges)-1),
                                 dtype=np.double)
     for i, trial_index in enumerate(trials_indices):
         aligned_spikes_trial_cluster = spikes_times[trial_index][cluster_index]
         binned_spikes = binSpikesTimes(
             spikes_times=aligned_spikes_trial_cluster,
-            bins_edges=bins_edges, time_unit=time_unit)
+            bins_edges=bins_edges, time_cluster=time_cluster)
         mt_binned_spikes[i, :] = binned_spikes
     return mt_binned_spikes
 
 
 def computeBinnedSpikesAndPSTH(spikes_times, cluster_index, trials_indices,
-                               bins_edges, time_unit):
+                               bins_edges, time_cluster):
     binned_spikes = binMultiTrialSpikes(spikes_times=spikes_times,
                                         cluster_index=cluster_index,
                                         trials_indices=trials_indices,
                                         bins_edges=bins_edges,
-                                        time_unit=time_unit)
+                                        time_cluster=time_cluster)
     psth = np.empty(len(bins_edges)-1, dtype=np.double)
     for j in range(len(bins_edges)-1):
         psth[j] = binned_spikes[:, j].mean()
@@ -255,14 +255,14 @@ def computeBinnedSpikesAndPSTH(spikes_times, cluster_index, trials_indices,
 
 def computeBinnedSpikesAndPSTHwithCI(spikes_times, cluster_index,
                                      trials_indices, epoch_times,
-                                     bins_edges, time_unit,
+                                     bins_edges, time_cluster,
                                      nResamples, alpha):
     binned_spikes = binMultiTrialSpikes(spikes_times=spikes_times,
                                         cluster_index=cluster_index,
                                         trials_indices=trials_indices,
                                         epoch_times=epoch_times,
                                         bins_edges=bins_edges,
-                                        time_unit=time_unit)
+                                        time_cluster=time_cluster)
     psth = np.empty(len(bins_edges)-1, dtype=np.double)
     psth_ci = np.empty((len(bins_edges)-1, 2), dtype=np.double)
     for j in range(len(bins_edges)-1):
